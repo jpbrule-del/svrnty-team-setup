@@ -136,7 +136,11 @@ echo ""
 # -------------------------------------------------------
 echo -e "${BOLD}--- [2/6] Agent Stack ---${NC}"
 
-# Bun
+# Bun — ensure ~/.bun/bin is in PATH so we detect existing installs
+if [ -d "$HOME/.bun/bin" ]; then
+    export BUN_INSTALL="$HOME/.bun"
+    export PATH="$BUN_INSTALL/bin:$PATH"
+fi
 if command -v bun &>/dev/null; then
     ok "Bun $(bun --version)"
 else
