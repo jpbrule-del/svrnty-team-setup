@@ -64,7 +64,7 @@ The setup script handles everything:
 - Installs **Bun**, **Overstory**, **Mulch**, **Beads**, **jq** (skips if already present)
 - Verifies **tmux**, **Node.js**, **Claude Code**
 - Enables agent teams in `~/.claude/settings.json`
-- Registers the plugin via shell alias in `~/.zshrc`
+- Registers the plugin via shell alias in your shell config (`~/.zshrc` or `~/.bashrc`)
 - Makes all scripts executable
 - Cleans up old `hybrid-orchestration-plugin` aliases if present
 

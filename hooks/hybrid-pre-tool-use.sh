@@ -43,8 +43,8 @@ if [ -n "${HYBRID_WORKTREE_PATH:-}" ]; then
     fi
 
     if [ -n "$FILE_PATH" ]; then
-        RESOLVED=$(cd "$(dirname "$FILE_PATH")" 2>/dev/null && pwd)/$(basename "$FILE_PATH") 2>/dev/null || FILE_PATH
-        WORKTREE_RESOLVED=$(cd "$HYBRID_WORKTREE_PATH" 2>/dev/null && pwd) 2>/dev/null || HYBRID_WORKTREE_PATH
+        RESOLVED=$(cd "$(dirname "$FILE_PATH")" 2>/dev/null && pwd)/$(basename "$FILE_PATH") || RESOLVED="$FILE_PATH"
+        WORKTREE_RESOLVED=$(cd "$HYBRID_WORKTREE_PATH" 2>/dev/null && pwd) || WORKTREE_RESOLVED="$HYBRID_WORKTREE_PATH"
         if [[ ! "$RESOLVED" == "$WORKTREE_RESOLVED"* ]]; then
             echo "{\"decision\": \"block\", \"reason\": \"Teammate boundary violation: file '$FILE_PATH' is outside your worktree at '$HYBRID_WORKTREE_PATH'.\"}"
             exit 0

@@ -24,6 +24,34 @@ warn() { echo -e "${YELLOW}⚠${NC} $1"; }
 fail() { echo -e "${RED}✗${NC} $1"; }
 info() { echo -e "${CYAN}→${NC} $1"; }
 
+# Cross-platform sed -i wrapper (macOS vs Linux)
+sedi() {
+    if [[ "$(uname)" == "Darwin" ]]; then
+        sed -i '' "$@"
+    else
+        sed -i "$@"
+    fi
+}
+
+# Warn if plugin is in a temporary directory
+case "$PLUGIN_DIR" in
+    /tmp/*|/var/tmp/*)
+        echo ""
+        warn "Plugin is in a temporary directory: $PLUGIN_DIR"
+        warn "This path will be wiped on reboot!"
+        echo ""
+        info "Recommended: move the plugin to a permanent location:"
+        echo "    mv $PLUGIN_DIR ~/Developer/svrnty-team-setup"
+        echo "    ~/Developer/svrnty-team-setup/setup.sh"
+        echo ""
+        read -rp "Continue anyway? [y/N] " confirm
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            echo "Aborting. Move the plugin first."
+            exit 1
+        fi
+        ;;
+esac
+
 echo ""
 echo -e "${BOLD}==========================================="
 echo " Svrnty Team Setup"
@@ -71,8 +99,10 @@ else
     info "Installing tmux..."
     if command -v brew &>/dev/null; then
         brew install tmux && ok "tmux installed" || { fail "tmux install failed"; MISSING+=("tmux"); }
+    elif command -v apt-get &>/dev/null; then
+        sudo apt-get install -y tmux && ok "tmux installed" || { fail "tmux install failed"; MISSING+=("tmux"); }
     else
-        fail "tmux not found — install with: brew install tmux"
+        fail "tmux not found — install with: brew install tmux (macOS) or sudo apt-get install tmux (Debian/Ubuntu)"
         MISSING+=("tmux")
     fi
 fi
@@ -140,12 +170,23 @@ else
     export PATH="$BUN_INSTALL/bin:$PATH"
     bun install && bun link
     cd "$PLUGIN_DIR"
+    # Create a wrapper script so overstory is immediately executable
+    mkdir -p "$HOME/.local/bin"
+    cat > "$HOME/.local/bin/overstory" << 'WRAPPER'
+#!/bin/bash
+exec "$HOME/.bun/bin/bun" "$HOME/.bun/install/global/node_modules/overstory/src/index.ts" "$@"
+WRAPPER
+    chmod +x "$HOME/.local/bin/overstory"
+    # Ensure ~/.local/bin is in PATH for this session
+    if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+        export PATH="$HOME/.local/bin:$PATH"
+    fi
     if command -v overstory &>/dev/null; then
         ok "Overstory installed"
         INSTALLED+=("overstory")
     else
-        warn "Overstory installed — reload shell to use: exec \$SHELL"
-        INSTALLED+=("overstory (needs shell reload)")
+        warn "Overstory installed — add ~/.local/bin to your PATH"
+        INSTALLED+=("overstory (add ~/.local/bin to PATH)")
     fi
 fi
 
@@ -173,7 +214,7 @@ else
         brew tap steveyegge/beads 2>/dev/null && brew install bd 2>/dev/null
     fi
     if ! command -v bd &>/dev/null; then
-        npm install -g beads-cli 2>/dev/null || true
+        npm install -g @beads/bd 2>/dev/null || true
     fi
     if command -v bd &>/dev/null; then
         ok "Beads installed"
@@ -239,8 +280,9 @@ echo ""
 # -------------------------------------------------------
 echo -e "${BOLD}--- [5/6] Shell Alias ---${NC}"
 
-SHELL_RC="$HOME/.zshrc"
-if [ -n "${BASH_VERSION:-}" ]; then
+if [[ "$SHELL" == *zsh* ]]; then
+    SHELL_RC="$HOME/.zshrc"
+else
     SHELL_RC="$HOME/.bashrc"
 fi
 
@@ -249,8 +291,8 @@ ALIAS_MARKER="svrnty-team-setup"
 
 # Remove any old hybrid-orchestration-plugin aliases
 if grep -qF "hybrid-orchestration-plugin" "$SHELL_RC" 2>/dev/null; then
-    sed -i '' '/# Hybrid orchestration plugin/d' "$SHELL_RC" 2>/dev/null || true
-    sed -i '' '/hybrid-orchestration-plugin/d' "$SHELL_RC" 2>/dev/null || true
+    sedi '/# Hybrid orchestration plugin/d' "$SHELL_RC" 2>/dev/null || true
+    sedi '/hybrid-orchestration-plugin/d' "$SHELL_RC" 2>/dev/null || true
     info "Removed old hybrid-orchestration-plugin alias"
 fi
 
@@ -258,8 +300,8 @@ if grep -qF "$ALIAS_MARKER" "$SHELL_RC" 2>/dev/null; then
     if grep -qF "$ALIAS_LINE" "$SHELL_RC" 2>/dev/null; then
         ok "Alias already configured"
     else
-        sed -i '' "/$ALIAS_MARKER/d" "$SHELL_RC" 2>/dev/null || true
-        sed -i '' '/svrnty-team-setup/d' "$SHELL_RC" 2>/dev/null || true
+        sedi "/$ALIAS_MARKER/d" "$SHELL_RC" 2>/dev/null || true
+        sedi '/svrnty-team-setup/d' "$SHELL_RC" 2>/dev/null || true
         echo "" >> "$SHELL_RC"
         echo "# Svrnty team setup — Claude Code plugin (auto-load) [$ALIAS_MARKER]" >> "$SHELL_RC"
         echo "$ALIAS_LINE" >> "$SHELL_RC"
