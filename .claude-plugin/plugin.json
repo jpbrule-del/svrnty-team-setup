@@ -1,0 +1,11 @@
+{
+  "name": "hybrid",
+  "description": "Svrnty Team Setup — Overstory agent orchestration with Beads task tracking and Mulch knowledge persistence",
+  "version": "1.0.0",
+  "author": {
+    "name": "Jean-Philippe Brulé"
+  },
+  "license": "MIT",
+  "keywords": ["orchestration", "overstory", "beads", "mulch", "worktree", "multi-agent", "svrnty"],
+  "hooks": "./hooks/hooks.json"
+}
