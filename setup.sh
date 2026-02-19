@@ -366,7 +366,7 @@ else
 fi
 
 SKILL_COUNT=$(find "$PLUGIN_DIR/skills" -name "SKILL.md" 2>/dev/null | wc -l | tr -d ' ')
-ok "Skills: $SKILL_COUNT commands (/svrnty:init, /svrnty:status, /svrnty:teardown)"
+ok "Skills: $SKILL_COUNT commands (/svrnty:init, /svrnty:doctor, /svrnty:update)"
 
 echo ""
 echo "==========================================="
@@ -392,6 +392,6 @@ echo "  3. In any project:  /svrnty:init backend frontend testing"
 echo ""
 echo "Available commands:"
 echo "  /svrnty:init [domains...]   — Initialize orchestration in current project"
-echo "  /svrnty:status              — Check stack status"
-echo "  /svrnty:teardown            — Merge branches, sync, clean up"
+echo "  /svrnty:doctor              — Repair project and sync to latest plugin version"
+echo "  /svrnty:update              — Update the plugin itself to the latest version"
 echo ""
