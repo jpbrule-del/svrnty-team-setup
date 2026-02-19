@@ -142,7 +142,7 @@ bd create --title="<task title>" --priority P1 --desc="<description>"
 # 2. Spawn an agent into its own worktree
 overstory sling <bead-id> --capability <type> --name <agent-name>
 
-# 3. Dispatch work via mail
+# 3. Dispatch work via mail (use the dispatch template below)
 overstory mail send --to <agent-name> --subject "<subject>" \
   --body "<instructions>" --type dispatch
 ```
@@ -155,6 +155,15 @@ overstory mail send --to <agent-name> --subject "<subject>" \
 
 You are the **orchestrator/coordinator**. You decompose work, dispatch leads, monitor progress, and merge results. You do NOT write code directly.
 
+### Strategy: When to Skip the Lead Layer
+
+If stories are already pre-written with clear acceptance criteria, **skip lead agents** and dispatch builders directly. Use `--force-hierarchy` only when you need a lead to decompose an epic into stories.
+
+```
+Pre-written stories → orchestrator dispatches builders directly (depth 1)
+Epics needing decomposition → orchestrator dispatches lead (depth 1) → lead dispatches builders (depth 2)
+```
+
 ### 1. Analyze and decompose
 ```bash
 bd list --status ready
@@ -163,13 +172,11 @@ mulch prime
 mulch search "<relevant query>"
 ```
 
-### 2. Create tasks and dispatch leads
+### 2. Create tasks and dispatch
 ```bash
 bd create --title="<work stream>" --priority P1 --desc="<objective and acceptance criteria>"
-overstory sling <bead-id> --capability lead --name <lead-name> --depth 1
-overstory mail send --to <lead-name> --subject "Work stream: <title>" \
-  --body "Objective: <what>. File area: <where>. Acceptance: <criteria>." \
-  --type dispatch
+overstory sling <bead-id> --capability builder --name <builder-name>
+# Use the DISPATCH TEMPLATE below for every dispatch
 overstory group create '\''<batch-name>'\'' <bead-id-1> <bead-id-2>
 ```
 
@@ -177,7 +184,7 @@ overstory group create '\''<batch-name>'\'' <bead-id-1> <bead-id-2>
 ```bash
 overstory status
 overstory dashboard
-overstory mail check
+overstory mail check          # <-- ALWAYS use this for polling, NEVER mail list --unread
 overstory group status <id>
 ```
 
@@ -193,14 +200,83 @@ mulch sync
 
 ---
 
+## Dispatch Template (MANDATORY for every dispatch)
+
+Every dispatch mail MUST include all of these sections. Copy and fill in:
+
+```
+OBJECTIVE: <what to build/fix>
+FILES: <target file paths, worktree-relative>
+ACCEPTANCE: <criteria from the story>
+
+QUALITY GATES (run before signalling done):
+  dotnet build <Project.csproj>
+  dotnet test <TestProject.csproj>
+  # Override the above with project-specific commands if needed
+
+BEAD CLOSURE (run after quality gates pass):
+  bd update <story-bead-id> --status done
+  bd close <story-bead-id>
+
+SIGNAL WHEN DONE:
+  overstory mail send --to <orchestrator> --subject "Done: <title>" \
+    --body "Bead <id> closed. Branch: <branch>. Ready for merge." \
+    --type merge_ready
+```
+
+---
+
+## Signal Protocol
+
+| From | To | Signal type | When |
+|------|----|------------|------|
+| Orchestrator | Builder | `dispatch` | Assigning work |
+| Builder | Orchestrator | `merge_ready` | Work done, quality gates passed, bead closed |
+| Orchestrator | Builder | `status` | Requesting progress update |
+| Builder | Orchestrator | `error` | Blocked or failed |
+| Builder | Orchestrator | `question` | Needs clarification |
+
+**IMPORTANT:** Builders send `merge_ready` (not `worker_done`) directly to the orchestrator. The orchestrator then merges and cleans up.
+
+---
+
+## Bead Lifecycle & Ownership
+
+| Bead type | Created by | Closed by | Notes |
+|-----------|-----------|-----------|-------|
+| Epic bead | Orchestrator | Orchestrator | Closed when all child stories are done |
+| Story bead | Orchestrator | Builder | Builder runs `bd close <id>` after quality gates pass |
+| Sub-task bead | Lead/Builder | Lead/Builder | Optional decomposition within a story |
+
+**Rule:** Whoever is dispatched a bead is responsible for closing it.
+
+---
+
+## Path Discipline (Worktree Builds)
+
+Agents run in worktrees at `.overstory/worktrees/<name>/`. All file paths in build/test commands MUST be relative to the worktree root, not the main repo.
+
+```bash
+# CORRECT — paths relative to worktree root
+dotnet build src/MyProject/MyProject.csproj
+dotnet test tests/MyProject.Tests/MyProject.Tests.csproj
+
+# WRONG — absolute paths or paths relative to main repo
+dotnet build /home/user/repo/src/MyProject/MyProject.csproj
+dotnet build ../../src/MyProject/MyProject.csproj
+```
+
+---
+
 ## Agent Hierarchy
 
 ```
 Orchestrator (you, depth 0)
-  +-- Lead (depth 1) -- owns a work stream end-to-end
-        +-- Scout (depth 2) -- read-only exploration, reports findings
-        +-- Builder (depth 2) -- implements code in isolated worktree
-        +-- Reviewer (depth 2) -- validates quality before merge
+  +-- Lead (depth 1) -- owns a work stream; use only when stories need decomposition
+  |     +-- Scout (depth 2) -- read-only exploration, reports findings
+  |     +-- Builder (depth 2) -- implements code in isolated worktree
+  |     +-- Reviewer (depth 2) -- validates quality before merge
+  +-- Builder (depth 1) -- direct dispatch when stories are pre-written
 ```
 
 ---
@@ -209,12 +285,14 @@ Orchestrator (you, depth 0)
 
 ```bash
 overstory mail send --to <agent> --subject "<subject>" --body "<body>" --type <type>
-# Types: dispatch, status, result, question, error, merge_ready, worker_done
-overstory mail check
-overstory mail list [--from <agent>] [--unread]
-overstory mail read <id>
+overstory mail check              # Poll for new messages (use in loops)
+overstory mail read <id>          # Read a specific message
 overstory nudge <agent-name> "Status check"
 ```
+
+### Forbidden in polling loops
+
+- `overstory mail list --unread` — this is unreliable for signal detection; always use `overstory mail check`
 
 ---
 
@@ -222,6 +300,7 @@ overstory nudge <agent-name> "Status check"
 
 - Use Claude Code'\''s `Task` tool to spawn agents (use `overstory sling`)
 - Use Claude Code'\''s `TeamCreate` tool (use `overstory group create`)
+- `overstory mail list --unread` in polling loops (use `overstory mail check`)
 - `git push --force` or `git push -f`
 - `git reset --hard`
 - `git clean -f` or `git clean -fd`
@@ -236,7 +315,7 @@ overstory nudge <agent-name> "Status check"
 |------|---------|-------------|
 | `overstory sling` | Spawn agents | `overstory sling <bead-id> --capability <type> --name <name>` |
 | `overstory status` | Monitoring | `overstory status`, `overstory dashboard` |
-| `overstory mail` | Communication | `mail send`, `mail check`, `mail list`, `mail read` |
+| `overstory mail` | Communication | `mail send`, `mail check`, `mail read` |
 | `overstory merge` | Branch integration | `merge --branch <name>`, `merge --all` |
 | `overstory group` | Batch tracking | `group create`, `group status`, `group list` |
 | `bd` | Task tracking | `bd create`, `bd list`, `bd update`, `bd close`, `bd sync` |
