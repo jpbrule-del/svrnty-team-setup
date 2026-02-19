@@ -356,7 +356,7 @@ else
 fi
 
 SKILL_COUNT=$(find "$PLUGIN_DIR/skills" -name "SKILL.md" 2>/dev/null | wc -l | tr -d ' ')
-ok "Skills: $SKILL_COUNT commands (/hybrid:init, /hybrid:status, /hybrid:teardown)"
+ok "Skills: $SKILL_COUNT commands (/svrnty:init, /svrnty:status, /svrnty:teardown)"
 
 echo ""
 echo "==========================================="
@@ -378,10 +378,10 @@ fi
 echo "Next steps:"
 echo "  1. Reload shell:    exec \$SHELL"
 echo "  2. Start Claude:    claude --dangerously-skip-permissions"
-echo "  3. In any project:  /hybrid:init backend frontend testing"
+echo "  3. In any project:  /svrnty:init backend frontend testing"
 echo ""
 echo "Available commands:"
-echo "  /hybrid:init [domains...]   — Initialize orchestration in current project"
-echo "  /hybrid:status              — Check stack status"
-echo "  /hybrid:teardown            — Merge branches, sync, clean up"
+echo "  /svrnty:init [domains...]   — Initialize orchestration in current project"
+echo "  /svrnty:status              — Check stack status"
+echo "  /svrnty:teardown            — Merge branches, sync, clean up"
 echo ""

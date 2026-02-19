@@ -3,7 +3,7 @@ set -euo pipefail
 
 # ============================================================================
 # Svrnty Team Setup — Project Init Script
-# Called by /hybrid:init skill
+# Called by /svrnty:init skill
 # ============================================================================
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[1;36m'; NC='\033[0m'
@@ -279,5 +279,5 @@ echo "Next steps:"
 echo "  1. Create tasks:   bd create --title=\"Task title\" --priority P1"
 echo "  2. Spawn agents:   overstory sling <bead-id> --capability lead --name <name>"
 echo "  3. Monitor:        overstory dashboard"
-echo "  4. After work:     /hybrid:teardown"
+echo "  4. After work:     /svrnty:teardown"
 echo ""

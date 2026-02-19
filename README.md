@@ -79,7 +79,7 @@ claude --dangerously-skip-permissions
 
 Then type:
 ```
-/hybrid:init backend frontend testing
+/svrnty:init backend frontend testing
 ```
 
 This initializes Overstory, Beads, and Mulch in the project, applies the orchestration config, installs the CLAUDE.md with full Overstory workflow, and adds the specified Mulch expertise domains.
@@ -87,7 +87,7 @@ This initializes Overstory, Beads, and Mulch in the project, applies the orchest
 ### Check status
 
 ```
-/hybrid:status
+/svrnty:status
 ```
 
 Shows: active agents, worktrees, Beads tasks, Mulch expertise, agent mail.
@@ -95,7 +95,7 @@ Shows: active agents, worktrees, Beads tasks, Mulch expertise, agent mail.
 ### Teardown after a team session
 
 ```
-/hybrid:teardown
+/svrnty:teardown
 ```
 
 Merges all branches (4-tier), syncs Beads, records Mulch learnings, cleans worktrees.
@@ -117,7 +117,7 @@ Merges all branches (4-tier), syncs Beads, records Mulch learnings, cleans workt
 
 5. Merge:               overstory merge --all
 
-6. Teardown:            /hybrid:teardown
+6. Teardown:            /svrnty:teardown
 
 7. Review & push:       git log --oneline && git push
 ```
@@ -143,6 +143,20 @@ svrnty-team-setup/
 ├── LICENSE
 ├── README.md                      # This file
 ├── setup.sh                       # One-time setup for new machines
+├── commands/                      # CLI command wrappers
+│   ├── sling.md                   # overstory sling — agent spawning
+│   ├── status.md                  # overstory status — agent status
+│   ├── mail.md                    # overstory mail — inter-agent messaging
+│   ├── merge.md                   # overstory merge — branch merging
+│   ├── dashboard.md               # overstory dashboard — live TUI
+│   ├── doctor.md                  # overstory doctor — health checks
+│   ├── bd-create.md               # bd create — create tasks
+│   ├── bd-list.md                 # bd list — list/query tasks
+│   ├── bd-update.md               # bd update — update/close tasks
+│   ├── bd-ready.md                # bd list --ready — find actionable tasks
+│   ├── mulch-prime.md             # mulch prime — load expertise context
+│   ├── mulch-record.md            # mulch record — record learnings
+│   └── mulch-search.md            # mulch search — search expertise
 ├── hooks/
 │   ├── hooks.json                 # Hook registration (9 hooks, 8 events)
 │   ├── block-native-agents.sh     # Block Task + TeamCreate → redirect to overstory
@@ -156,15 +170,15 @@ svrnty-team-setup/
 │   └── hybrid-pre-compact.sh      # Restore context after compaction
 ├── skills/
 │   ├── init/
-│   │   └── SKILL.md               # /hybrid:init — project initialization
+│   │   └── SKILL.md               # /svrnty:init — project initialization
 │   ├── status/
-│   │   └── SKILL.md               # /hybrid:status — stack status check
+│   │   └── SKILL.md               # /svrnty:status — stack status check
 │   └── teardown/
-│       └── SKILL.md               # /hybrid:teardown — merge + cleanup
+│       └── SKILL.md               # /svrnty:teardown — merge + cleanup
 └── scripts/
-    ├── init-project.sh            # Init script (called by /hybrid:init)
-    ├── status.sh                  # Status script (called by /hybrid:status)
-    └── teardown.sh                # Teardown script (called by /hybrid:teardown)
+    ├── init-project.sh            # Init script (called by /svrnty:init)
+    ├── status.sh                  # Status script (called by /svrnty:status)
+    └── teardown.sh                # Teardown script (called by /svrnty:teardown)
 ```
 
 ## Hooks Reference
