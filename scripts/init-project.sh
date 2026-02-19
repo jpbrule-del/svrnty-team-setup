@@ -74,6 +74,14 @@ fi
 
 # 4. Beads
 echo "--- Beads ---"
+
+# Ensure bd has CGO support (required for Dolt backend on Linux)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/ensure-bd-cgo.sh" ]; then
+    source "$SCRIPT_DIR/ensure-bd-cgo.sh"
+    ensure_bd_cgo || warn "CGO check failed — bd init may not work"
+fi
+
 if [ -d ".beads" ]; then
     warn "Already initialized"
 else

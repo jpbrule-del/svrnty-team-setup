@@ -229,6 +229,16 @@ else
         MISSING+=("bd")
     fi
 fi
+
+# Beads CGO check — the npm binary is often built without CGO, which breaks
+# the Dolt storage backend on Linux. Detect and rebuild from source if needed.
+if command -v bd &>/dev/null; then
+    CGO_SCRIPT="$PLUGIN_DIR/scripts/ensure-bd-cgo.sh"
+    if [ -f "$CGO_SCRIPT" ]; then
+        source "$CGO_SCRIPT"
+        ensure_bd_cgo || warn "bd CGO rebuild failed — bd init may not work"
+    fi
+fi
 echo ""
 
 # -------------------------------------------------------
