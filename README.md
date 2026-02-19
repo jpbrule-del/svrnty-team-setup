@@ -14,22 +14,20 @@ Native Claude Code `Task` and `TeamCreate` tools are **blocked by hooks** — al
                   │
 ┌─────────────────▼────────────────────────────────┐
 │         Orchestrator (Claude Code, depth 0)       │
-│  Decomposes → bd create → overstory sling leads   │
+│  Decomposes → bd create → overstory sling         │
 │  Monitors via dashboard → merges → syncs          │
 └───────┬──────────┬──────────┬────────────────────┘
         │          │          │
    ┌────▼───┐ ┌───▼────┐ ┌──▼──────┐
-   │Lead A  │ │Lead B  │ │Lead C   │
+   │Builder │ │Builder │ │Lead     │  ← skip leads when stories are pre-written
    │depth 1 │ │depth 1 │ │depth 1  │
    │worktree│ │worktree│ │worktree │
-   └──┬──┬──┘ └───┬────┘ └──┬──────┘
-      │  │        │         │
-   Scout Builder  Builder   Scout
-   (d2) (d2)      (d2)      (d2)
-        │          │
-   overstory merge --all
-                │
-           main branch
+   └────────┘ └────────┘ └──┬──────┘
+                             │
+                        Scout Builder
+                        (d2)  (d2)
+
+   overstory merge --all → main branch
 ```
 
 ## What Each Tool Does
@@ -61,73 +59,57 @@ exec $SHELL
 ```
 
 The setup script handles everything:
-- Installs **Bun**, **Overstory**, **Mulch**, **Beads**, **jq** (skips if already present)
+- Installs **Bun**, **Overstory**, **Mulch**, **Beads** (with CGO rebuild if needed), **jq**
 - Verifies **tmux**, **Node.js**, **Claude Code**
 - Enables agent teams in `~/.claude/settings.json`
-- Registers the plugin via shell alias in your shell config (`~/.zshrc` or `~/.bashrc`)
+- Registers the plugin via shell alias
 - Makes all scripts executable
-- Cleans up old `hybrid-orchestration-plugin` aliases if present
 
-## Usage
+## Commands
 
-### Initialize a project
+| Command | Description |
+|---------|-------------|
+| `/svrnty:init [domains...]` | Initialize orchestration in the current project |
+| `/svrnty:doctor` | Repair project and sync to latest plugin version |
+| `/svrnty:update` | Update the plugin itself to the latest version |
 
-```bash
-cd /path/to/your/project
-claude --dangerously-skip-permissions
-```
+### `/svrnty:init`
 
-Then type:
-```
-/svrnty:init backend frontend testing
-```
+Initializes Overstory, Beads, and Mulch in the project. Applies orchestration config, installs CLAUDE.md with the full dispatch template, signal protocol, bead lifecycle, and path discipline rules. Optionally adds Mulch expertise domains.
 
-This initializes Overstory, Beads, and Mulch in the project, applies the orchestration config, installs the CLAUDE.md with full Overstory workflow, and adds the specified Mulch expertise domains.
+### `/svrnty:doctor`
 
-### Check status
+Runs health checks on all three subsystems, verifies CGO support for Beads, checks if CLAUDE.md has all required sections (dispatch template, signal protocol, bead lifecycle, path discipline), and auto-repairs what it can.
 
-```
-/svrnty:status
-```
+### `/svrnty:update`
 
-Shows: active agents, worktrees, Beads tasks, Mulch expertise, agent mail.
-
-### Teardown after a team session
-
-```
-/svrnty:teardown
-```
-
-Merges all branches (4-tier), syncs Beads, records Mulch learnings, cleans worktrees.
+Pulls the latest plugin from the repository, syncs all remotes, re-runs `setup.sh` to update dependencies, and reports the version change. Restart Claude Code after updating.
 
 ## Day-to-Day Workflow
 
 ```
 1. Create tasks:        bd create --title="Feature X" --priority P1
-                        bd create --title="Subtask A" --priority P1
 
 2. Start session:       tmux new-session -s work
                         claude --dangerously-skip-permissions
 
-3. Orchestrate:         "Work on <bead-ids>. Spawn leads via overstory sling
-                         for each work stream. Monitor via dashboard."
+3. Orchestrate:         "Work on <bead-ids>. Spawn builders via overstory sling.
+                         Monitor via dashboard."
 
-4. Agents work:         Leads spawn scouts/builders/reviewers
-                        Each in isolated worktree with Beads + Mulch
+4. Agents work:         Each in isolated worktree with Beads + Mulch
 
 5. Merge:               overstory merge --all
 
-6. Teardown:            /svrnty:teardown
-
-7. Review & push:       git log --oneline && git push
+6. Review & push:       git log --oneline && git push
 ```
 
 ## Agent Hierarchy
 
 | Depth | Role | Spawned by | Capabilities |
 |-------|------|------------|-------------|
-| 0 | Orchestrator (you) | — | Decomposes, dispatches leads, monitors, merges |
-| 1 | Lead | Orchestrator | Owns a work stream, spawns depth-2 agents |
+| 0 | Orchestrator (you) | — | Decomposes, dispatches, monitors, merges |
+| 1 | Builder | Orchestrator | Implements code in isolated worktree (when stories are pre-written) |
+| 1 | Lead | Orchestrator | Owns a work stream, spawns depth-2 agents (when stories need decomposition) |
 | 2 | Scout | Lead | Read-only exploration, reports findings |
 | 2 | Builder | Lead | Implements code in isolated worktree |
 | 2 | Reviewer | Lead | Validates quality before merge |
@@ -138,25 +120,11 @@ Merges all branches (4-tier), syncs Beads, records Mulch learnings, cleans workt
 ```
 svrnty-team-setup/
 ├── .claude-plugin/
-│   └── plugin.json                # Plugin manifest
+│   └── plugin.json                # Plugin manifest (v2.0.0)
 ├── .gitignore
 ├── LICENSE
-├── README.md                      # This file
+├── README.md
 ├── setup.sh                       # One-time setup for new machines
-├── commands/                      # CLI command wrappers
-│   ├── sling.md                   # overstory sling — agent spawning
-│   ├── status.md                  # overstory status — agent status
-│   ├── mail.md                    # overstory mail — inter-agent messaging
-│   ├── merge.md                   # overstory merge — branch merging
-│   ├── dashboard.md               # overstory dashboard — live TUI
-│   ├── doctor.md                  # overstory doctor — health checks
-│   ├── bd-create.md               # bd create — create tasks
-│   ├── bd-list.md                 # bd list — list/query tasks
-│   ├── bd-update.md               # bd update — update/close tasks
-│   ├── bd-ready.md                # bd list --ready — find actionable tasks
-│   ├── mulch-prime.md             # mulch prime — load expertise context
-│   ├── mulch-record.md            # mulch record — record learnings
-│   └── mulch-search.md            # mulch search — search expertise
 ├── hooks/
 │   ├── hooks.json                 # Hook registration (9 hooks, 8 events)
 │   ├── block-native-agents.sh     # Block Task + TeamCreate → redirect to overstory
@@ -171,14 +139,15 @@ svrnty-team-setup/
 ├── skills/
 │   ├── init/
 │   │   └── SKILL.md               # /svrnty:init — project initialization
-│   ├── status/
-│   │   └── SKILL.md               # /svrnty:status — stack status check
-│   └── teardown/
-│       └── SKILL.md               # /svrnty:teardown — merge + cleanup
+│   ├── doctor/
+│   │   └── SKILL.md               # /svrnty:doctor — repair & sync project
+│   └── update/
+│       └── SKILL.md               # /svrnty:update — self-update plugin
 └── scripts/
     ├── init-project.sh            # Init script (called by /svrnty:init)
-    ├── status.sh                  # Status script (called by /svrnty:status)
-    └── teardown.sh                # Teardown script (called by /svrnty:teardown)
+    ├── doctor.sh                  # Doctor script (called by /svrnty:doctor)
+    ├── update.sh                  # Update script (called by /svrnty:update)
+    └── ensure-bd-cgo.sh           # Beads CGO rebuild helper
 ```
 
 ## Hooks Reference
@@ -208,9 +177,10 @@ svrnty-team-setup/
 |-------|-----|
 | `overstory` not found after install | `exec $SHELL` or check `~/.bun/bin` in PATH |
 | Hooks not firing | Ensure plugin is loaded (`claude --plugin-dir ...`) |
-| `compdef` warning on shell reload | Harmless — add `autoload -Uz compinit && compinit` before bun completions in `.zshrc` |
 | Native Task/TeamCreate blocked | By design — use `overstory sling` instead |
-| Agents not on dashboard | Use `overstory sling` (not native teams) to spawn |
+| Beads CGO error on Linux | Run `/svrnty:doctor` — auto-rebuilds with CGO |
+| CLAUDE.md outdated | Run `/svrnty:doctor` — auto-syncs to latest template |
+| Plugin outdated | Run `/svrnty:update` — pulls latest and re-runs setup |
 
 ## Dependencies
 
