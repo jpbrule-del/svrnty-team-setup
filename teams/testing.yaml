@@ -1,0 +1,15 @@
+name: testing
+description: Test execution and security audit
+phases:
+  - name: test
+    capability: tester
+    input: "merged development branches"
+  - name: security
+    capability: security
+    input: "merged development branches"
+    parallel_with: test  # runs alongside tester
+handoff:
+  produces:
+    - docs/testing/test-report.md
+    - docs/testing/security-report.md
+  next_team: qa

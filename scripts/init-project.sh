@@ -122,6 +122,23 @@ mkdir -p .overstory/worktrees
 ok "Worktree base directory ready"
 echo ""
 
+# 6b. Team definitions
+echo "--- Team Definitions ---"
+TEAMS_SOURCE="$SCRIPT_DIR/../teams"
+TEAMS_TARGET=".overstory/teams"
+if [ -d "$TEAMS_SOURCE" ]; then
+    mkdir -p "$TEAMS_TARGET"
+    for team_file in "$TEAMS_SOURCE"/*.yaml; do
+        [ -f "$team_file" ] || continue
+        team_name=$(basename "$team_file")
+        cp "$team_file" "$TEAMS_TARGET/$team_name"
+        ok "Deployed team: $team_name"
+    done
+else
+    warn "No team definitions found at $TEAMS_SOURCE"
+fi
+echo ""
+
 # 7. CLAUDE.md — Overstory orchestration layer
 echo "--- Orchestration Layer ---"
 
@@ -147,7 +164,7 @@ overstory mail send --to <agent-name> --subject "<subject>" \
   --body "<instructions>" --type dispatch --agent $OVERSTORY_AGENT_NAME
 ```
 
-**Agent types:** `coordinator`, `lead`, `supervisor`, `scout`, `builder`, `reviewer`, `merger`, `monitor`
+**Agent types:** `coordinator`, `lead`, `supervisor`, `scout`, `builder`, `reviewer`, `merger`, `monitor`, `analyst`, `pm`, `architect`, `scrummaster`, `tester`, `security`, `qa`
 
 ---
 
@@ -268,6 +285,53 @@ Orchestrator (you, depth 0)
 - **Builders/Scouts/Reviewers** are leaf nodes -- they do NOT spawn sub-agents
 - **Monitor** observes and nudges but never spawns agents
 - Use `--force-hierarchy` to dispatch builders directly when stories are ready
+
+---
+
+## Team Orchestration
+
+Teams are groups of specialized agents that execute a workflow pipeline together. Teams are a convention layer built on existing overstory primitives (sling, mail, groups, beads).
+
+### Available Teams
+
+| Team | Lead dispatches | Agents | Output |
+|---|---|---|---|
+| planning | BMAD pipeline | analyst -> pm -> architect -> scrummaster | stories + sprint plan |
+| development | Story execution | builders (parallel) | implemented features |
+| testing | Validation | tester + security (parallel) | test + security reports |
+| qa | Final check | qa | QA report |
+
+### Spawning a Team
+
+```bash
+# 1. Create a bead for the team lead
+bd create --title="Planning: <project brief>" --priority P0 --desc="Run BMAD planning pipeline"
+
+# 2. Spawn the team lead
+overstory sling <bead-id> --capability lead --name planning-lead
+
+# 3. Send team dispatch with pipeline definition
+overstory mail send --to planning-lead --subject "Team: planning" \
+  --body "Execute BMAD pipeline: analyst -> pm -> architect -> scrummaster. <project brief>" \
+  --type dispatch --agent $OVERSTORY_AGENT_NAME
+```
+
+### Team Sequencing
+
+Output of one team feeds the next:
+1. **Planning** -> produces `docs/stories/*.md` + `docs/planning/sprint-plan.yaml`
+2. **Development** -> builders consume stories, produce implemented code
+3. **Testing** -> tester + security audit the merged code
+4. **QA** -> validates acceptance criteria from stories
+
+### Artifact Locations
+
+| Team | Output Directory |
+|---|---|
+| Planning | `docs/planning/`, `docs/stories/` |
+| Development | Feature branches (merged by orchestrator) |
+| Testing | `docs/testing/` |
+| QA | `docs/qa/` |
 
 ---
 

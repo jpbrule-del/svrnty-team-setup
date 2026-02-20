@@ -183,6 +183,10 @@ if [ -f "CLAUDE.md" ]; then
         NEEDS_UPDATE=true
         info "Missing: Direct Builder Dispatch Template"
     fi
+    if ! grep -q "Team Orchestration" CLAUDE.md 2>/dev/null; then
+        NEEDS_UPDATE=true
+        info "Missing: Team Orchestration section"
+    fi
 
     if $NEEDS_UPDATE; then
         info "CLAUDE.md is outdated — regenerating orchestration layer..."
@@ -216,6 +220,86 @@ else
     else
         fail "Could not create CLAUDE.md"
         ERRORS=$((ERRORS + 1))
+    fi
+fi
+echo ""
+
+# -------------------------------------------------------
+# 4b. Team definitions sync
+# -------------------------------------------------------
+echo -e "${BOLD}--- [4b/6] Team Definitions ---${NC}"
+
+TEAMS_SOURCE="$PLUGIN_ROOT/teams"
+TEAMS_TARGET=".overstory/teams"
+if [ -d "$TEAMS_SOURCE" ]; then
+    if [ -d "$TEAMS_TARGET" ]; then
+        # Check each team file exists and is current
+        TEAMS_NEED_UPDATE=false
+        for team_file in "$TEAMS_SOURCE"/*.yaml; do
+            [ -f "$team_file" ] || continue
+            team_name=$(basename "$team_file")
+            if [ ! -f "$TEAMS_TARGET/$team_name" ]; then
+                TEAMS_NEED_UPDATE=true
+                info "Missing team: $team_name"
+            elif ! diff -q "$team_file" "$TEAMS_TARGET/$team_name" &>/dev/null; then
+                TEAMS_NEED_UPDATE=true
+                info "Outdated team: $team_name"
+            fi
+        done
+        if $TEAMS_NEED_UPDATE; then
+            mkdir -p "$TEAMS_TARGET"
+            for team_file in "$TEAMS_SOURCE"/*.yaml; do
+                [ -f "$team_file" ] || continue
+                cp "$team_file" "$TEAMS_TARGET/$(basename "$team_file")"
+            done
+            ok "Team definitions updated"
+            FIXED=$((FIXED + 1))
+        else
+            ok "Team definitions are current"
+        fi
+    else
+        mkdir -p "$TEAMS_TARGET"
+        for team_file in "$TEAMS_SOURCE"/*.yaml; do
+            [ -f "$team_file" ] || continue
+            cp "$team_file" "$TEAMS_TARGET/$(basename "$team_file")"
+        done
+        ok "Team definitions deployed"
+        FIXED=$((FIXED + 1))
+    fi
+else
+    warn "No team definitions source at $TEAMS_SOURCE"
+    WARNINGS=$((WARNINGS + 1))
+fi
+
+# Verify agent-manifest includes new capabilities
+if [ -f ".overstory/agent-manifest.json" ]; then
+    MISSING_CAPS=""
+    for cap in analyst pm architect scrummaster tester security qa; do
+        if ! jq -e ".agents.${cap}" .overstory/agent-manifest.json &>/dev/null; then
+            MISSING_CAPS="$MISSING_CAPS $cap"
+        fi
+    done
+    if [ -n "$MISSING_CAPS" ]; then
+        warn "Agent manifest missing capabilities:$MISSING_CAPS — run 'overstory init --force' to update"
+        WARNINGS=$((WARNINGS + 1))
+    else
+        ok "Agent manifest has all 15 capabilities"
+    fi
+fi
+
+# Verify agent-defs include new .md files
+if [ -d ".overstory/agent-defs" ]; then
+    MISSING_DEFS=""
+    for def in analyst.md pm.md architect.md scrummaster.md tester.md security.md qa.md; do
+        if [ ! -f ".overstory/agent-defs/$def" ]; then
+            MISSING_DEFS="$MISSING_DEFS $def"
+        fi
+    done
+    if [ -n "$MISSING_DEFS" ]; then
+        warn "Agent defs missing:$MISSING_DEFS — run 'overstory init --force' to update"
+        WARNINGS=$((WARNINGS + 1))
+    else
+        ok "Agent defs have all 15 definitions"
     fi
 fi
 echo ""

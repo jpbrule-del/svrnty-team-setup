@@ -1,0 +1,13 @@
+name: qa
+description: Final quality assurance
+phases:
+  - name: qa
+    capability: qa
+    input:
+      - docs/testing/test-report.md
+      - docs/testing/security-report.md
+      - docs/stories/*.md  # verify acceptance criteria
+handoff:
+  produces:
+    - docs/qa/qa-report.md
+  next_team: null  # final team

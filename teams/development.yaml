@@ -1,0 +1,11 @@
+name: development
+description: Sprint execution — builders implement stories
+phases:
+  - name: build
+    capability: builder
+    input: docs/stories/*.md
+    parallel: true  # one builder per story
+handoff:
+  produces:
+    - "implemented code on feature branches"
+  next_team: testing

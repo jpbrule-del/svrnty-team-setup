@@ -1,0 +1,31 @@
+name: planning
+description: BMAD planning pipeline — analysis to sprint-ready stories
+phases:
+  - name: analyze
+    capability: analyst
+    input: "Project brief from orchestrator dispatch"
+    output: docs/planning/analysis.md
+  - name: prd
+    capability: pm
+    input: docs/planning/analysis.md
+    output: docs/planning/prd.md
+  - name: architecture
+    capability: architect
+    input: docs/planning/prd.md
+    output:
+      - docs/planning/architecture.md
+      - docs/planning/adrs/
+  - name: stories
+    capability: scrummaster
+    input:
+      - docs/planning/prd.md
+      - docs/planning/architecture.md
+    output:
+      - docs/planning/epics.md
+      - docs/stories/
+      - docs/planning/sprint-plan.yaml
+handoff:
+  produces:
+    - docs/stories/*.md
+    - docs/planning/sprint-plan.yaml
+  next_team: development
