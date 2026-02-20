@@ -164,10 +164,18 @@ else
     info "Installing Overstory..."
     OVERSTORY_DIR="$HOME/Developer/overstory"
     mkdir -p "$HOME/Developer"
+    OVERSTORY_REPO="https://github.com/jpbrule-del/overstory.git"
     if [ -d "$OVERSTORY_DIR/.git" ]; then
-        cd "$OVERSTORY_DIR" && git pull
+        cd "$OVERSTORY_DIR"
+        # Ensure origin points to our fork
+        CURRENT_ORIGIN=$(git remote get-url origin 2>/dev/null || echo "")
+        if [ "$CURRENT_ORIGIN" != "$OVERSTORY_REPO" ]; then
+            git remote set-url origin "$OVERSTORY_REPO" 2>/dev/null || git remote add origin "$OVERSTORY_REPO" 2>/dev/null
+            info "Updated overstory origin to fork"
+        fi
+        git pull origin main
     else
-        git clone https://github.com/jayminwest/overstory.git "$OVERSTORY_DIR"
+        git clone "$OVERSTORY_REPO" "$OVERSTORY_DIR"
     fi
     cd "$OVERSTORY_DIR"
     export BUN_INSTALL="$HOME/.bun"
