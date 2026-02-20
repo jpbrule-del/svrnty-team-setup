@@ -142,129 +142,110 @@ bd create --title="<task title>" --priority P1 --desc="<description>"
 # 2. Spawn an agent into its own worktree
 overstory sling <bead-id> --capability <type> --name <agent-name>
 
-# 3. Dispatch work via mail (use the dispatch template below)
+# 3. Dispatch work via mail
 overstory mail send --to <agent-name> --subject "<subject>" \
-  --body "<instructions>" --type dispatch
+  --body "<instructions>" --type dispatch --agent $OVERSTORY_AGENT_NAME
 ```
 
-**Agent types:** `coordinator`, `lead`, `scout`, `builder`, `reviewer`, `merger`
+**Agent types:** `coordinator`, `lead`, `supervisor`, `scout`, `builder`, `reviewer`, `merger`, `monitor`
+
+---
+
+## Choosing the Right Dispatch Strategy
+
+### Use direct builders (preferred when stories are pre-written)
+
+When user stories already have clear acceptance criteria and file paths, **skip the lead layer entirely**. Leads burn their entire context window on exploration before spawning a single builder -- pure waste when the work is already decomposed.
+
+```bash
+# Spawn builder directly, bypassing hierarchy enforcement
+overstory sling <bead-id> --capability builder --name <name> --force-hierarchy
+```
+
+**Use direct builders when:**
+- Story files already exist with acceptance criteria
+- File scope is well-understood
+- No ambiguity requiring codebase exploration
+
+### Use the lead layer for genuine discovery work only
+
+```bash
+overstory sling <bead-id> --capability lead --name <lead-name>
+```
+
+**Use leads when:**
+- Work requires discovery before decomposition
+- Codebase is unfamiliar and scouts are needed
+- Multiple parallel work streams need coordination within a sprint
 
 ---
 
 ## Orchestrator Workflow (You)
 
-You are the **orchestrator/coordinator**. You decompose work, dispatch leads, monitor progress, and merge results. You do NOT write code directly.
-
-### Strategy: When to Skip the Lead Layer
-
-If stories are already pre-written with clear acceptance criteria, **skip lead agents** and dispatch builders directly. Use `--force-hierarchy` only when you need a lead to decompose an epic into stories.
-
-```
-Pre-written stories → orchestrator dispatches builders directly (depth 1)
-Epics needing decomposition → orchestrator dispatches lead (depth 1) → lead dispatches builders (depth 2)
-```
+You are the **orchestrator/coordinator**. You decompose work, dispatch agents, monitor progress, and merge results. You do NOT write code directly.
 
 ### 1. Analyze and decompose
 ```bash
+# Check existing tasks
 bd list --status ready
 bd list --status in_progress
+
+# Load expertise
 mulch prime
 mulch search "<relevant query>"
 ```
 
-### 2. Create tasks and dispatch
+### 2. Dispatch agents
 ```bash
+# Create a task for each work stream
 bd create --title="<work stream>" --priority P1 --desc="<objective and acceptance criteria>"
-overstory sling <bead-id> --capability builder --name <builder-name>
-# Use the DISPATCH TEMPLATE below for every dispatch
+
+# Spawn direct builder (for pre-written stories)
+overstory sling <bead-id> --capability builder --name <name> --force-hierarchy
+
+# OR spawn a lead (for discovery/decomposition work)
+overstory sling <bead-id> --capability lead --name <lead-name>
+
+# Group related tasks for batch tracking
 overstory group create '\''<batch-name>'\'' <bead-id-1> <bead-id-2>
 ```
 
 ### 3. Monitor
 ```bash
-overstory status
-overstory dashboard
-overstory mail check          # <-- ALWAYS use this for polling, NEVER mail list --unread
-overstory group status <id>
+overstory status              # Active agents and worktrees
+overstory dashboard           # Live TUI (run in separate terminal)
+overstory mail check          # Incoming messages from agents
+overstory group status <id>   # Batch progress
 ```
 
+**IMPORTANT:** Always use `overstory mail check` to poll for completion signals. Never use `overstory mail list --unread` in a loop -- messages already read will not reappear, causing signals to be silently missed.
+
 ### 4. Merge and close
+
+**MANDATORY sequence -- do not skip any step:**
+
 ```bash
-overstory merge --branch <branch> --dry-run
-overstory merge --branch <branch>
-overstory merge --all
-overstory worktree clean --completed
+# Step 1: Merge
+overstory merge --branch <branch> --dry-run   # Check first
+overstory merge --branch <branch>              # Then merge
+# (or: overstory merge --all)
+
+# Step 2: ALWAYS verify beads immediately after merge
+# Builders sometimes close only their task bead and miss story beads.
+bd list --status open   # any sprint beads still open? close them now
+
+# Close any story beads the builder missed:
+bd close <missed-bead> --reason "Implemented in <builder-name>, merged at <branch>"
+
+# Step 3: Sync dashboard
 bd sync
+
+# Step 4: Clean up (only after beads are verified + synced)
+overstory worktree clean --completed
 mulch sync
 ```
 
----
-
-## Dispatch Template (MANDATORY for every dispatch)
-
-Every dispatch mail MUST include all of these sections. Copy and fill in:
-
-```
-OBJECTIVE: <what to build/fix>
-FILES: <target file paths, worktree-relative>
-ACCEPTANCE: <criteria from the story>
-
-QUALITY GATES (run before signalling done):
-  dotnet build <Project.csproj>
-  dotnet test <TestProject.csproj>
-  # Override the above with project-specific commands if needed
-
-BEAD CLOSURE (run after quality gates pass):
-  bd update <story-bead-id> --status done
-  bd close <story-bead-id>
-
-SIGNAL WHEN DONE:
-  overstory mail send --to <orchestrator> --subject "Done: <title>" \
-    --body "Bead <id> closed. Branch: <branch>. Ready for merge." \
-    --type merge_ready
-```
-
----
-
-## Signal Protocol
-
-| From | To | Signal type | When |
-|------|----|------------|------|
-| Orchestrator | Builder | `dispatch` | Assigning work |
-| Builder | Orchestrator | `merge_ready` | Work done, quality gates passed, bead closed |
-| Orchestrator | Builder | `status` | Requesting progress update |
-| Builder | Orchestrator | `error` | Blocked or failed |
-| Builder | Orchestrator | `question` | Needs clarification |
-
-**IMPORTANT:** Builders send `merge_ready` (not `worker_done`) directly to the orchestrator. The orchestrator then merges and cleans up.
-
----
-
-## Bead Lifecycle & Ownership
-
-| Bead type | Created by | Closed by | Notes |
-|-----------|-----------|-----------|-------|
-| Epic bead | Orchestrator | Orchestrator | Closed when all child stories are done |
-| Story bead | Orchestrator | Builder | Builder runs `bd close <id>` after quality gates pass |
-| Sub-task bead | Lead/Builder | Lead/Builder | Optional decomposition within a story |
-
-**Rule:** Whoever is dispatched a bead is responsible for closing it.
-
----
-
-## Path Discipline (Worktree Builds)
-
-Agents run in worktrees at `.overstory/worktrees/<name>/`. All file paths in build/test commands MUST be relative to the worktree root, not the main repo.
-
-```bash
-# CORRECT — paths relative to worktree root
-dotnet build src/MyProject/MyProject.csproj
-dotnet test tests/MyProject.Tests/MyProject.Tests.csproj
-
-# WRONG — absolute paths or paths relative to main repo
-dotnet build /home/user/repo/src/MyProject/MyProject.csproj
-dotnet build ../../src/MyProject/MyProject.csproj
-```
+> **Why this matters:** The builder overlay only closes the builder'\''s own task bead. Story beads are only closed if the dispatch message instructions were followed perfectly. Always assume at least one story bead may be open and verify with `bd list --status open` before declaring a sprint done.
 
 ---
 
@@ -272,40 +253,160 @@ dotnet build ../../src/MyProject/MyProject.csproj
 
 ```
 Orchestrator (you, depth 0)
-  +-- Lead (depth 1) -- owns a work stream; use only when stories need decomposition
-  |     +-- Scout (depth 2) -- read-only exploration, reports findings
-  |     +-- Builder (depth 2) -- implements code in isolated worktree
-  |     +-- Reviewer (depth 2) -- validates quality before merge
-  +-- Builder (depth 1) -- direct dispatch when stories are pre-written
+  +-- Lead (depth 1) -- owns a work stream end-to-end (use for discovery only)
+        +-- Scout (depth 2) -- read-only exploration, reports findings
+        +-- Builder (depth 2) -- implements code in isolated worktree
+        +-- Reviewer (depth 2) -- validates quality before merge
+  +-- Builder (depth 1, --force-hierarchy) -- direct dispatch for pre-written stories
+  +-- Supervisor (depth 1) -- persistent per-project team lead
+        +-- Scout/Builder/Reviewer/Merger (depth 2) -- leaf workers
+  +-- Monitor (depth 1) -- fleet watchdog, anomaly detection
+```
+
+- **Leads** spawn their own scouts, builders, and reviewers
+- **Supervisors** are persistent leads with full worker lifecycle management
+- **Builders/Scouts/Reviewers** are leaf nodes -- they do NOT spawn sub-agents
+- **Monitor** observes and nudges but never spawns agents
+- Use `--force-hierarchy` to dispatch builders directly when stories are ready
+
+---
+
+## Direct Builder Dispatch Template
+
+The builder'\''s `.claude/CLAUDE.md` overlay already contains the full protocol: quality gates, bead lifecycle, PATH DISCIPLINE, and completion signals. Dispatch messages only need to supply what is unique per sprint.
+
+**Required fields -- missing any causes broken bead tracking:**
+
+```
+## Sprint N -- <Title>
+Stack: Flutter | .NET | TypeScript
+<Framework> app with Sprint 1-(N-1) complete at <dir>/. Add to existing project. DO NOT re-create.
+
+Stories to implement (read each story file first):
+1. X-N.M -> docs/stories/<path>.md (bead: <project-xxx>)
+2. X-N.M -> docs/stories/<path>.md (bead: <project-yyy>)
+...
+
+Key technical context:
+- <any library quirks, patterns, import paths, constraints not already in mulch>
+
+Quality gates (OVERRIDE defaults if needed):
+- Flutter: flutter analyze from mobile/ -- 0 issues
+- .NET:    dotnet build from backend/ -- 0 warnings
+- TypeScript: bun test && bun run lint && bun run typecheck
+
+Close ALL beads before signalling done (story beads FIRST, then your task bead):
+  bd close <project-xxx> --reason "Implemented: X-N.M"
+  bd close <project-yyy> --reason "Implemented: X-N.M"
+  bd close <builder-task-bead> --reason "Sprint N builder complete"
+
+Signal: send merge_ready (NOT worker_done) to orchestrator -- parent is orchestrator, not a lead.
+
+Your worktree: <worktree-path>
+Your branch:   <branch-name>
+Your parent:   orchestrator
+Your task bead: <builder-task-bead>
+```
+
+> **Note:** The builder overlay hardcodes `worker_done` and `bun` quality gates as defaults. Override both in the dispatch message when your project uses a different stack or when the parent is the orchestrator (not a lead).
+
+---
+
+## Bead Lifecycle
+
+Beads must be kept in sync with actual work state. The builder overlay only closes the builder'\''s own task bead -- story bead closure must be explicitly listed in every dispatch message (see template above) and verified by the orchestrator after every merge.
+
+| Bead type | Created by | Closed by |
+|---|---|---|
+| Orchestrator task bead | Orchestrator | Orchestrator (after merge) |
+| Story-level beads | Orchestrator (before sprint) | Builder (in dispatch) OR Orchestrator (bulk after merge) |
+| Builder task bead | Orchestrator | Builder (in completion protocol) |
+
+**After every merge**, verify and sync:
+```bash
+bd list --status in_progress   # should be empty after a sprint completes
+bd list --status open          # should be empty for all sprint beads
+bd sync                        # flush to dashboard immediately
 ```
 
 ---
 
 ## Communication Protocol
 
+All inter-agent communication uses Overstory mail. **CRITICAL: always pass `--agent $OVERSTORY_AGENT_NAME` on every mail command.** Omitting it causes silent routing failures.
+
 ```bash
-overstory mail send --to <agent> --subject "<subject>" --body "<body>" --type <type>
-overstory mail check              # Poll for new messages (use in loops)
-overstory mail read <id>          # Read a specific message
+# Send
+overstory mail send --to <agent> --subject "<subject>" --body "<body>" --type <type> --agent $OVERSTORY_AGENT_NAME
+
+# Types: dispatch, status, result, question, error, merge_ready, worker_done, assign, escalation
+
+# Check inbox -- use this for polling loops
+overstory mail check --agent $OVERSTORY_AGENT_NAME
+
+# List/read specific messages
+overstory mail list [--from <agent>] --agent $OVERSTORY_AGENT_NAME
+overstory mail read <id>
+
+# Nudge a stalled agent
 overstory nudge <agent-name> "Status check"
 ```
 
-### Forbidden in polling loops
+### Completion signal rules
 
-- `overstory mail list --unread` — this is unreliable for signal detection; always use `overstory mail check`
+| Scenario | Signal to send |
+|---|---|
+| Builder -> Lead (normal hierarchy) | `worker_done` |
+| Builder -> Orchestrator (direct, `--force-hierarchy`) | `merge_ready` |
+| Lead -> Orchestrator | `merge_ready` |
+| Supervisor -> Orchestrator | `result` |
+
+Builders dispatched directly to the orchestrator must send `merge_ready` (not `worker_done`) so the orchestrator knows the branch is ready to land without a lead review step.
+
+---
+
+## Merge Protocol (4-Tier Escalation)
+
+1. **Tier 1 -- Fast-forward**: No conflicts, auto-merged
+2. **Tier 2 -- Git auto-merge**: Standard 3-way merge, no conflicts
+3. **Tier 3 -- AI-assisted resolve**: Overstory uses AI to resolve conflicts
+4. **Tier 4 -- Manual / Reimagine**: Human intervention required
+
+After every merge, always verify beads and sync:
+```bash
+overstory merge --branch <branch> --dry-run   # check first
+overstory merge --branch <branch>              # merge
+bd list --status open                          # verify all beads closed
+bd sync                                        # flush to dashboard
+overstory worktree clean --completed           # clean up
+```
 
 ---
 
 ## Forbidden Operations
 
+**NEVER** do any of these:
 - Use Claude Code'\''s `Task` tool to spawn agents (use `overstory sling`)
 - Use Claude Code'\''s `TeamCreate` tool (use `overstory group create`)
-- `overstory mail list --unread` in polling loops (use `overstory mail check`)
 - `git push --force` or `git push -f`
 - `git reset --hard`
 - `git clean -f` or `git clean -fd`
 - `rm -rf` on any project directory
 - Write files outside your worktree boundary (teammates only)
+- Use `overstory mail list --unread` in orchestrator polling loops (use `mail check`)
+- Send mail without `--agent $OVERSTORY_AGENT_NAME` (causes silent routing failures)
+
+---
+
+## Project-Specific Quality Gates
+
+Override the builder overlay'\''s default `bun` commands when your project uses a different stack. Always specify in the dispatch message.
+
+| Stack | Build | Test |
+|---|---|---|
+| TypeScript/Node | `bun run typecheck` | `bun test && bun run lint` |
+| Flutter | `flutter analyze` -- 0 issues | `flutter test` |
+| .NET | `dotnet build` -- 0 warnings | `dotnet test` |
 
 ---
 
@@ -313,10 +414,10 @@ overstory nudge <agent-name> "Status check"
 
 | Tool | Purpose | Key Commands |
 |------|---------|-------------|
-| `overstory sling` | Spawn agents | `overstory sling <bead-id> --capability <type> --name <name>` |
-| `overstory status` | Monitoring | `overstory status`, `overstory dashboard` |
-| `overstory mail` | Communication | `mail send`, `mail check`, `mail read` |
-| `overstory merge` | Branch integration | `merge --branch <name>`, `merge --all` |
+| `overstory sling` | Spawn agents | `sling <bead-id> --capability <type> --name <name> [--force-hierarchy]` |
+| `overstory status` | Agent monitoring | `status`, `dashboard` |
+| `overstory mail` | Communication | `mail check` (polling), `mail send --agent`, `mail list`, `mail read` |
+| `overstory merge` | Branch integration | `merge --branch <name>`, `merge --all`, `merge --dry-run` |
 | `overstory group` | Batch tracking | `group create`, `group status`, `group list` |
 | `bd` | Task tracking | `bd create`, `bd list`, `bd update`, `bd close`, `bd sync` |
 | `mulch` | Knowledge | `mulch prime`, `mulch search`, `mulch record`, `mulch learn` |

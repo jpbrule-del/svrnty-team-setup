@@ -152,32 +152,36 @@ echo -e "${BOLD}--- [4/6] CLAUDE.md Sync ---${NC}"
 # Extract it by running the init script in a subshell with a flag.
 # Instead, we'll inline a version check.
 if [ -f "CLAUDE.md" ]; then
-    # Check for key markers from the sprint-fixed template
+    # Check for key markers from the enhanced template
     NEEDS_UPDATE=false
 
-    if ! grep -q "Dispatch Template (MANDATORY" CLAUDE.md 2>/dev/null; then
+    if ! grep -q "Choosing the Right Dispatch Strategy" CLAUDE.md 2>/dev/null; then
         NEEDS_UPDATE=true
-        info "Missing: Dispatch Template section"
+        info "Missing: Dispatch Strategy section"
     fi
-    if ! grep -q "Signal Protocol" CLAUDE.md 2>/dev/null; then
+    if ! grep -q "OVERSTORY_AGENT_NAME" CLAUDE.md 2>/dev/null; then
         NEEDS_UPDATE=true
-        info "Missing: Signal Protocol table"
+        info "Missing: --agent \$OVERSTORY_AGENT_NAME requirement"
     fi
     if ! grep -q "Bead Lifecycle" CLAUDE.md 2>/dev/null; then
         NEEDS_UPDATE=true
         info "Missing: Bead Lifecycle table"
     fi
-    if ! grep -q "Path Discipline" CLAUDE.md 2>/dev/null; then
+    if ! grep -q "Completion signal rules" CLAUDE.md 2>/dev/null; then
         NEEDS_UPDATE=true
-        info "Missing: Path Discipline section"
+        info "Missing: Completion signal rules table"
     fi
-    if ! grep -q "mail list --unread" CLAUDE.md 2>/dev/null || grep -q "NEVER.*mail list --unread\|Forbidden.*mail list --unread\|forbidden.*polling" CLAUDE.md 2>/dev/null; then
-        : # either not mentioned or properly forbidden
-    else
-        if grep -q "mail list.*--unread" CLAUDE.md 2>/dev/null && ! grep -q "Forbidden in polling" CLAUDE.md 2>/dev/null; then
-            NEEDS_UPDATE=true
-            info "Stale: mail list --unread not forbidden"
-        fi
+    if ! grep -q "Merge Protocol" CLAUDE.md 2>/dev/null; then
+        NEEDS_UPDATE=true
+        info "Missing: Merge Protocol section"
+    fi
+    if ! grep -q "Project-Specific Quality Gates" CLAUDE.md 2>/dev/null; then
+        NEEDS_UPDATE=true
+        info "Missing: Project-Specific Quality Gates table"
+    fi
+    if ! grep -q "Direct Builder Dispatch Template" CLAUDE.md 2>/dev/null; then
+        NEEDS_UPDATE=true
+        info "Missing: Direct Builder Dispatch Template"
     fi
 
     if $NEEDS_UPDATE; then
@@ -201,7 +205,7 @@ if [ -f "CLAUDE.md" ]; then
             fi
         fi
     else
-        ok "CLAUDE.md is current (has all sprint fixes)"
+        ok "CLAUDE.md is current (has all enhanced markers)"
     fi
 else
     info "No CLAUDE.md found — generating..."
