@@ -1,10 +1,21 @@
 #!/usr/bin/env bash
 # Hook: SessionStart
-# Purpose: Load Beads task context, Mulch expertise, and Overstory status into session
+# Purpose: Auto-update plugin + deps, then load context into session
 
 set -euo pipefail
 
+# Auto-update check (throttled, runs at most once per hour)
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+if [ -f "$PLUGIN_ROOT/hooks/auto-update.sh" ]; then
+    UPDATE_MSG=$(bash "$PLUGIN_ROOT/hooks/auto-update.sh" 2>/dev/null || true)
+fi
+
 OUTPUT=""
+
+# Show update results if anything was updated
+if [ -n "${UPDATE_MSG:-}" ]; then
+    OUTPUT+="${UPDATE_MSG}\n\n"
+fi
 
 # Load Mulch priming context
 if command -v mulch &>/dev/null && [ -d ".mulch" ]; then
