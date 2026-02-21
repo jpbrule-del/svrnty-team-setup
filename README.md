@@ -72,6 +72,9 @@ The setup script handles everything:
 | `/svrnty-team-setup:init [domains...]` | Initialize orchestration in the current project |
 | `/svrnty-team-setup:doctor` | Repair project and sync to latest plugin version |
 | `/svrnty-team-setup:update` | Update the plugin itself to the latest version |
+| `/svrnty-team-setup:team spawn <name>` | Spawn a team pipeline |
+| `/svrnty-team-setup:team list` | List available team definitions |
+| `/svrnty-team-setup:team status <name>` | Check team progress |
 
 ### `/svrnty-team-setup:init`
 
@@ -115,54 +118,82 @@ Pulls the latest plugin from the repository, syncs all remotes, re-runs `setup.s
 | 2 | Reviewer | Lead | Validates quality before merge |
 | — | Merger | Orchestrator | Handles complex merge conflicts |
 
+<!-- BEGIN PLUGIN STRUCTURE -->
 ## Plugin Structure
 
 ```
 svrnty-team-setup/
 ├── .claude-plugin/
-│   └── plugin.json                # Plugin manifest (v2.0.0)
-├── .gitignore
-├── LICENSE
-├── README.md
-├── setup.sh                       # One-time setup for new machines
-├── hooks/
-│   ├── hooks.json                 # Hook registration (9 hooks, 8 events)
-│   ├── block-native-agents.sh     # Block Task + TeamCreate → redirect to overstory
-│   ├── hybrid-session-start.sh    # Load Beads + Mulch + Overstory status
-│   ├── hybrid-prompt-submit.sh    # Check Overstory mail
-│   ├── hybrid-pre-tool-use.sh     # Block dangerous ops + enforce worktree boundary
-│   ├── hybrid-post-tool-use.sh    # Log file modifications (async)
-│   ├── hybrid-stop.sh             # Sync Beads + Mulch on stop
-│   ├── hybrid-task-completed.sh   # Auto-close Beads tasks
-│   ├── hybrid-teammate-idle.sh    # Warn about uncommitted work
-│   └── hybrid-pre-compact.sh      # Restore context after compaction
+│   └── plugin.json                    # Plugin manifest (v2.1.0)
+├── .github/
+│   ├── workflows/
+│   │   ├── validate-plugin.yml        # CI validation
+│   │   └── sync-manifest.yml          # Auto-sync manifest + README
+│   └── scripts/
+│       └── sync-manifest.js           # Node.js sync automation
 ├── commands/
-│   ├── doctor.md                  # /svrnty-team-setup:doctor — repair & sync project
-│   ├── init.md                    # /svrnty-team-setup:init — project initialization
-│   └── update.md                  # /svrnty-team-setup:update — self-update plugin
+│   ├── doctor.md                      # /svrnty-team-setup:doctor
+│   ├── init.md                        # /svrnty-team-setup:init
+│   └── update.md                      # /svrnty-team-setup:update
+├── hooks/
+│   ├── hooks.json                     # Hook registration (9 hooks, 8 events)
+│   ├── svrnty-auto-update.sh          # Auto-update check (throttled)
+│   ├── svrnty-block-native-agents.sh  # Block Task + TeamCreate
+│   ├── svrnty-pre-compact.sh          # Restore context after compaction
+│   ├── svrnty-pre-tool-use.sh         # Block dangerous ops + worktree boundary
+│   ├── svrnty-post-tool-use.sh        # Log file modifications (async)
+│   ├── svrnty-prompt-submit.sh        # Check Overstory mail
+│   ├── svrnty-session-start.sh        # Load Beads + Mulch + Overstory status
+│   ├── svrnty-stop.sh                 # Sync Beads + Mulch on stop
+│   ├── svrnty-task-completed.sh       # Auto-close Beads tasks
+│   └── svrnty-teammate-idle.sh        # Warn about uncommitted work
+├── scripts/
+│   ├── _common.sh                     # Shared colors/logging utilities
+│   ├── doctor.sh                      # Doctor script
+│   ├── ensure-bd-cgo.sh              # Beads CGO rebuild helper
+│   ├── init-project.sh               # Init script
+│   ├── setup.sh                       # Full setup logic (delegated from root)
+│   └── update.sh                      # Update script
 ├── skills/
 │   └── team/
-│       └── SKILL.md               # Team orchestration (auto-activates in context)
-└── scripts/
-    ├── init-project.sh            # Init script (called by /svrnty-team-setup:init)
-    ├── doctor.sh                  # Doctor script (called by /svrnty-team-setup:doctor)
-    ├── update.sh                  # Update script (called by /svrnty-team-setup:update)
-    └── ensure-bd-cgo.sh           # Beads CGO rebuild helper
+│       ├── SKILL.md                   # Team orchestration skill
+│       └── references/
+│           ├── team-schema.md         # Team YAML schema docs
+│           └── pipeline-sequence.md   # Pipeline sequence docs
+├── teams/
+│   ├── README.md                      # Team YAML schema + pipeline docs
+│   ├── development.yaml
+│   ├── planning.yaml
+│   ├── qa.yaml
+│   └── testing.yaml
+├── .gitignore
+├── AGENTS.md                          # Agent guidelines
+├── CLAUDE.md                          # Plugin development guide
+├── CONTRIBUTING.md                    # Contribution standards
+├── LICENSE
+├── README.md
+├── VERSIONS.md                        # Version history
+├── setup.sh                           # Thin wrapper → scripts/setup.sh
+└── validate-plugin.sh                 # Plugin validation
 ```
+<!-- END PLUGIN STRUCTURE -->
 
+<!-- BEGIN HOOKS REFERENCE -->
 ## Hooks Reference
 
 | Hook | Event | Matcher | Purpose |
 |------|-------|---------|---------|
-| `block-native-agents.sh` | PreToolUse | `Task\|TeamCreate` | Block native agent tools, redirect to Overstory |
-| `hybrid-session-start.sh` | SessionStart | — | Load Beads + Mulch + Overstory status |
-| `hybrid-prompt-submit.sh` | UserPromptSubmit | — | Check Overstory mail |
-| `hybrid-pre-tool-use.sh` | PreToolUse | `Edit\|Write\|Bash` | Block dangerous git ops + enforce worktree boundary |
-| `hybrid-post-tool-use.sh` | PostToolUse | `Edit\|Write` | Log file modifications (async) |
-| `hybrid-stop.sh` | Stop | — | Sync Beads + Mulch learnings |
-| `hybrid-task-completed.sh` | TaskCompleted | — | Auto-close Beads tasks |
-| `hybrid-teammate-idle.sh` | TeammateIdle | — | Warn about uncommitted work |
-| `hybrid-pre-compact.sh` | PreCompact | — | Restore critical context |
+| `svrnty-block-native-agents.sh` | PreToolUse | `Task\|TeamCreate` | Block native agent tools, redirect to Overstory |
+| `svrnty-session-start.sh` | SessionStart | — | Load Beads + Mulch + Overstory status |
+| `svrnty-prompt-submit.sh` | UserPromptSubmit | — | Check Overstory mail |
+| `svrnty-pre-tool-use.sh` | PreToolUse | `Edit\|Write\|Bash` | Block dangerous git ops + enforce worktree boundary |
+| `svrnty-post-tool-use.sh` | PostToolUse | `Edit\|Write` | Log file modifications (async) |
+| `svrnty-stop.sh` | Stop | — | Sync Beads + Mulch learnings |
+| `svrnty-task-completed.sh` | TaskCompleted | — | Auto-close Beads tasks |
+| `svrnty-teammate-idle.sh` | TeammateIdle | — | Warn about uncommitted work |
+| `svrnty-pre-compact.sh` | PreCompact | — | Restore critical context |
+| `svrnty-auto-update.sh` | SessionStart | — | Silent update check (throttled, 1h cooldown) |
+<!-- END HOOKS REFERENCE -->
 
 ## Merge Protocol (4 Tiers)
 
@@ -190,6 +221,13 @@ svrnty-team-setup/
 | [Beads](https://github.com/steveyegge/beads) | steveyegge | `setup.sh` handles it |
 | [Mulch](https://github.com/jayminwest/mulch) | jayminwest | `npm install -g mulch-cli` |
 | [Bun](https://bun.sh) | oven-sh | `curl -fsSL https://bun.sh/install \| bash` |
+
+## Documentation
+
+- [VERSIONS.md](VERSIONS.md) — Version history
+- [CONTRIBUTING.md](CONTRIBUTING.md) — Contribution guidelines
+- [AGENTS.md](AGENTS.md) — Agent guidelines and rules
+- [CLAUDE.md](CLAUDE.md) — Plugin development guide
 
 ## License
 
