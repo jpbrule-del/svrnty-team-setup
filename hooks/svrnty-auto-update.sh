@@ -80,7 +80,7 @@ fi
 
 # --- 2. Overstory update ---
 OVERSTORY_DIR="$HOME/Developer/overstory"
-OVERSTORY_REPO="https://github.com/jpbrule-del/overstory.git"
+OVERSTORY_REPO="${SVRNTY_OVERSTORY_REPO:-https://github.com/jpbrule-del/overstory.git}"
 
 if [ -d "$OVERSTORY_DIR/.git" ]; then
     cd "$OVERSTORY_DIR"

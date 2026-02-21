@@ -16,13 +16,14 @@ set -euo pipefail
 # Go is auto-installed to ~/.local/go if missing.
 # ============================================================================
 
-# Colours (inherit from caller or define fresh)
-RED="${RED:-\033[0;31m}"; GREEN="${GREEN:-\033[0;32m}"
-YELLOW="${YELLOW:-\033[1;33m}"; CYAN="${CYAN:-\033[1;36m}"; NC="${NC:-\033[0m}"
-_ok()   { echo -e "${GREEN}✓${NC} $1"; }
-_warn() { echo -e "${YELLOW}⚠${NC} $1"; }
-_fail() { echo -e "${RED}✗${NC} $1"; }
-_info() { echo -e "${CYAN}→${NC} $1"; }
+# Source shared colors/logging if not already loaded
+if ! declare -f ok &>/dev/null; then
+    source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_common.sh"
+fi
+_ok()   { ok "$@"; }
+_warn() { warn "$@"; }
+_fail() { fail "$@"; }
+_info() { info "$@"; }
 
 # ---------------------------------------------------------------------------
 # Detect whether a bd binary was built with CGO (dynamically linked).
