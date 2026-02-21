@@ -1,6 +1,6 @@
 {
   "name": "svrnty-team-setup",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Overstory multi-agent orchestration with Beads task tracking and Mulch knowledge persistence",
   "author": {
     "name": "Jean-Philippe Brulé",
@@ -8,5 +8,30 @@
   },
   "repository": "https://github.com/jpbrule-del/svrnty-team-setup",
   "license": "MIT",
-  "keywords": ["orchestration", "overstory", "beads", "mulch", "multi-agent", "svrnty"]
+  "keywords": ["orchestration", "overstory", "beads", "mulch", "multi-agent", "svrnty"],
+  "skills": [
+    {
+      "path": "./skills/team",
+      "description": "Manage multi-agent teams for structured workflow pipelines",
+      "triggers": [
+        "/svrnty-team-setup:team spawn",
+        "/svrnty-team-setup:team list",
+        "/svrnty-team-setup:team status"
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "path": "./commands/init.md",
+      "description": "Initialize Overstory agent orchestration in the current project"
+    },
+    {
+      "path": "./commands/doctor.md",
+      "description": "Repair project and sync to latest plugin version"
+    },
+    {
+      "path": "./commands/update.md",
+      "description": "Update the plugin itself to the latest version"
+    }
+  ]
 }
