@@ -1,3 +1,12 @@
+---
+name: team
+description: "Manage multi-agent teams for structured workflow pipelines. Triggers: /svrnty-team-setup:team spawn, /svrnty-team-setup:team list, /svrnty-team-setup:team status"
+allowed-tools:
+  - Bash
+  - Read
+  - Glob
+---
+
 # Team Orchestration Skill
 
 Manage multi-agent teams for structured workflow pipelines.
