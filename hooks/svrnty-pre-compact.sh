@@ -4,6 +4,9 @@
 
 set -euo pipefail
 
+# Env var migration: support both SVRNTY_ and legacy HYBRID_ prefixes
+WORKTREE_PATH="${SVRNTY_WORKTREE_PATH:-${HYBRID_WORKTREE_PATH:-}}"
+
 OUTPUT=""
 
 # Reload in-progress Beads tasks
@@ -31,9 +34,9 @@ if command -v overstory &>/dev/null && [ -d ".overstory" ]; then
 fi
 
 # Remind about worktree boundary if applicable
-if [ -n "${HYBRID_WORKTREE_PATH:-}" ]; then
+if [ -n "${WORKTREE_PATH:-}" ]; then
     OUTPUT+="## Worktree Boundary Reminder\n"
-    OUTPUT+="You are a teammate. Your worktree is: ${HYBRID_WORKTREE_PATH}\n"
+    OUTPUT+="You are a teammate. Your worktree is: ${WORKTREE_PATH}\n"
     OUTPUT+="Work ONLY within this directory. Do NOT modify files outside it.\n\n"
 fi
 

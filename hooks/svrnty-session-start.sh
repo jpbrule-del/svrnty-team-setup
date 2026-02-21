@@ -6,8 +6,8 @@ set -euo pipefail
 
 # Auto-update check (throttled, runs at most once per hour)
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
-if [ -f "$PLUGIN_ROOT/hooks/auto-update.sh" ]; then
-    UPDATE_MSG=$(bash "$PLUGIN_ROOT/hooks/auto-update.sh" 2>/dev/null || true)
+if [ -f "$PLUGIN_ROOT/hooks/svrnty-auto-update.sh" ]; then
+    UPDATE_MSG=$(bash "$PLUGIN_ROOT/hooks/svrnty-auto-update.sh" 2>/dev/null || true)
 fi
 
 OUTPUT=""

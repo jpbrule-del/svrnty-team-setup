@@ -2,8 +2,11 @@
 # Hook: TeammateIdle — Warn about uncommitted changes in worktree
 set -euo pipefail
 
-if [ -n "${HYBRID_WORKTREE_PATH:-}" ] && [ -d "$HYBRID_WORKTREE_PATH" ]; then
-    cd "$HYBRID_WORKTREE_PATH"
+# Env var migration: support both SVRNTY_ and legacy HYBRID_ prefixes
+WORKTREE_PATH="${SVRNTY_WORKTREE_PATH:-${HYBRID_WORKTREE_PATH:-}}"
+
+if [ -n "${WORKTREE_PATH:-}" ] && [ -d "$WORKTREE_PATH" ]; then
+    cd "$WORKTREE_PATH"
     DIRTY=$(git status --porcelain 2>/dev/null || true)
     if [ -n "$DIRTY" ]; then
         FILE_COUNT=$(echo "$DIRTY" | wc -l | tr -d ' ')

@@ -3,6 +3,9 @@
 # Block dangerous git ops + enforce worktree boundary for teammates
 set -euo pipefail
 
+# Env var migration: support both SVRNTY_ and legacy HYBRID_ prefixes
+WORKTREE_PATH="${SVRNTY_WORKTREE_PATH:-${HYBRID_WORKTREE_PATH:-}}"
+
 INPUT=$(cat)
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || true)
 TOOL_INPUT=$(echo "$INPUT" | jq -r '.tool_input // empty' 2>/dev/null || true)
@@ -30,7 +33,7 @@ if [ "$TOOL_NAME" = "Bash" ]; then
 fi
 
 # --- Enforce worktree boundary for teammates ---
-if [ -n "${HYBRID_WORKTREE_PATH:-}" ]; then
+if [ -n "${WORKTREE_PATH:-}" ]; then
     FILE_PATH=""
     if [ "$TOOL_NAME" = "Edit" ] || [ "$TOOL_NAME" = "Write" ]; then
         FILE_PATH=$(echo "$TOOL_INPUT" | jq -r '.file_path // empty' 2>/dev/null || true)
@@ -44,9 +47,9 @@ if [ -n "${HYBRID_WORKTREE_PATH:-}" ]; then
 
     if [ -n "$FILE_PATH" ]; then
         RESOLVED=$(cd "$(dirname "$FILE_PATH")" 2>/dev/null && pwd)/$(basename "$FILE_PATH") || RESOLVED="$FILE_PATH"
-        WORKTREE_RESOLVED=$(cd "$HYBRID_WORKTREE_PATH" 2>/dev/null && pwd) || WORKTREE_RESOLVED="$HYBRID_WORKTREE_PATH"
+        WORKTREE_RESOLVED=$(cd "$WORKTREE_PATH" 2>/dev/null && pwd) || WORKTREE_RESOLVED="$WORKTREE_PATH"
         if [[ ! "$RESOLVED" == "$WORKTREE_RESOLVED"* ]]; then
-            echo "{\"decision\": \"block\", \"reason\": \"Teammate boundary violation: file '$FILE_PATH' is outside your worktree at '$HYBRID_WORKTREE_PATH'.\"}"
+            echo "{\"decision\": \"block\", \"reason\": \"Teammate boundary violation: file '$FILE_PATH' is outside your worktree at '$WORKTREE_PATH'.\"}"
             exit 0
         fi
     fi
