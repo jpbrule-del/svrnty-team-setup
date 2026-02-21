@@ -1,12 +1,11 @@
 ---
 name: update
-description: Update the svrnty plugin to the latest version and re-run setup
-disable-model-invocation: true
+description: Update the svrnty-team-setup plugin to the latest version and re-run setup
 allowed-tools:
   - Bash
 ---
 
-# svrnty update — Self-Update Plugin
+# svrnty-team-setup:update — Self-Update Plugin
 
 Download the latest plugin version from the repository and re-run setup to update all dependencies.
 

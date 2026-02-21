@@ -5,14 +5,14 @@ Manage multi-agent teams for structured workflow pipelines.
 ## Usage
 
 ```
-/svrnty:team spawn <team-name>     — Spawn a team (creates beads, lead, group)
-/svrnty:team list                   — List available team definitions
-/svrnty:team status <team-name>     — Show team progress
+/svrnty-team-setup:team spawn <team-name>     — Spawn a team (creates beads, lead, group)
+/svrnty-team-setup:team list                   — List available team definitions
+/svrnty-team-setup:team status <team-name>     — Show team progress
 ```
 
 ## Instructions
 
-When the user invokes `/svrnty:team`, parse the subcommand and arguments, then execute the appropriate action below.
+When the user invokes `/svrnty-team-setup:team`, parse the subcommand and arguments, then execute the appropriate action below.
 
 ### `spawn <team-name>`
 
@@ -121,8 +121,8 @@ The standard pipeline runs teams in order:
 4. **qa** → validates acceptance criteria
 
 The orchestrator sequences teams by:
-1. Spawning a team with `/svrnty:team spawn <name>`
-2. Monitoring with `/svrnty:team status <name>`
+1. Spawning a team with `/svrnty-team-setup:team spawn <name>`
+2. Monitoring with `/svrnty-team-setup:team status <name>`
 3. After the team completes, spawning the next team in the pipeline
 
 ## Notes

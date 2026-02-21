@@ -69,19 +69,19 @@ The setup script handles everything:
 
 | Command | Description |
 |---------|-------------|
-| `/svrnty:init [domains...]` | Initialize orchestration in the current project |
-| `/svrnty:doctor` | Repair project and sync to latest plugin version |
-| `/svrnty:update` | Update the plugin itself to the latest version |
+| `/svrnty-team-setup:init [domains...]` | Initialize orchestration in the current project |
+| `/svrnty-team-setup:doctor` | Repair project and sync to latest plugin version |
+| `/svrnty-team-setup:update` | Update the plugin itself to the latest version |
 
-### `/svrnty:init`
+### `/svrnty-team-setup:init`
 
 Initializes Overstory, Beads, and Mulch in the project. Applies orchestration config, installs CLAUDE.md with the full dispatch template, signal protocol, bead lifecycle, and path discipline rules. Optionally adds Mulch expertise domains.
 
-### `/svrnty:doctor`
+### `/svrnty-team-setup:doctor`
 
 Runs health checks on all three subsystems, verifies CGO support for Beads, checks if CLAUDE.md has all required sections (dispatch template, signal protocol, bead lifecycle, path discipline), and auto-repairs what it can.
 
-### `/svrnty:update`
+### `/svrnty-team-setup:update`
 
 Pulls the latest plugin from the repository, syncs all remotes, re-runs `setup.sh` to update dependencies, and reports the version change. Restart Claude Code after updating.
 
@@ -136,17 +136,17 @@ svrnty-team-setup/
 │   ├── hybrid-task-completed.sh   # Auto-close Beads tasks
 │   ├── hybrid-teammate-idle.sh    # Warn about uncommitted work
 │   └── hybrid-pre-compact.sh      # Restore context after compaction
+├── commands/
+│   ├── doctor.md                  # /svrnty-team-setup:doctor — repair & sync project
+│   ├── init.md                    # /svrnty-team-setup:init — project initialization
+│   └── update.md                  # /svrnty-team-setup:update — self-update plugin
 ├── skills/
-│   ├── init/
-│   │   └── SKILL.md               # /svrnty:init — project initialization
-│   ├── doctor/
-│   │   └── SKILL.md               # /svrnty:doctor — repair & sync project
-│   └── update/
-│       └── SKILL.md               # /svrnty:update — self-update plugin
+│   └── team/
+│       └── SKILL.md               # Team orchestration (auto-activates in context)
 └── scripts/
-    ├── init-project.sh            # Init script (called by /svrnty:init)
-    ├── doctor.sh                  # Doctor script (called by /svrnty:doctor)
-    ├── update.sh                  # Update script (called by /svrnty:update)
+    ├── init-project.sh            # Init script (called by /svrnty-team-setup:init)
+    ├── doctor.sh                  # Doctor script (called by /svrnty-team-setup:doctor)
+    ├── update.sh                  # Update script (called by /svrnty-team-setup:update)
     └── ensure-bd-cgo.sh           # Beads CGO rebuild helper
 ```
 
@@ -178,9 +178,9 @@ svrnty-team-setup/
 | `overstory` not found after install | `exec $SHELL` or check `~/.bun/bin` in PATH |
 | Hooks not firing | Ensure plugin is loaded (`claude --plugin-dir ...`) |
 | Native Task/TeamCreate blocked | By design — use `overstory sling` instead |
-| Beads CGO error on Linux | Run `/svrnty:doctor` — auto-rebuilds with CGO |
-| CLAUDE.md outdated | Run `/svrnty:doctor` — auto-syncs to latest template |
-| Plugin outdated | Run `/svrnty:update` — pulls latest and re-runs setup |
+| Beads CGO error on Linux | Run `/svrnty-team-setup:doctor` — auto-rebuilds with CGO |
+| CLAUDE.md outdated | Run `/svrnty-team-setup:doctor` — auto-syncs to latest template |
+| Plugin outdated | Run `/svrnty-team-setup:update` — pulls latest and re-runs setup |
 
 ## Dependencies
 

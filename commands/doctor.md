@@ -1,12 +1,11 @@
 ---
 name: doctor
 description: Repair the current project and sync it to the latest installed plugin version
-disable-model-invocation: true
 allowed-tools:
   - Bash
 ---
 
-# svrnty doctor — Repair & Sync Project
+# svrnty-team-setup:doctor — Repair & Sync Project
 
 Run health checks on the full stack, repair common issues, and sync the project's orchestration config to the latest installed plugin version.
 

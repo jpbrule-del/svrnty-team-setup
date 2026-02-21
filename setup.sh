@@ -373,8 +373,10 @@ else
     ALL_OK=false
 fi
 
+CMD_COUNT=$(find "$PLUGIN_DIR/commands" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
 SKILL_COUNT=$(find "$PLUGIN_DIR/skills" -name "SKILL.md" 2>/dev/null | wc -l | tr -d ' ')
-ok "Skills: $SKILL_COUNT commands (/svrnty:init, /svrnty:doctor, /svrnty:update)"
+ok "Commands: $CMD_COUNT (/svrnty-team-setup:init, /svrnty-team-setup:doctor, /svrnty-team-setup:update)"
+ok "Skills: $SKILL_COUNT (team orchestration)"
 
 echo ""
 echo "==========================================="
@@ -396,10 +398,10 @@ fi
 echo "Next steps:"
 echo "  1. Reload shell:    exec \$SHELL"
 echo "  2. Start Claude:    claude --dangerously-skip-permissions"
-echo "  3. In any project:  /svrnty:init backend frontend testing"
+echo "  3. In any project:  /svrnty-team-setup:init backend frontend testing"
 echo ""
 echo "Available commands:"
-echo "  /svrnty:init [domains...]   — Initialize orchestration in current project"
-echo "  /svrnty:doctor              — Repair project and sync to latest plugin version"
-echo "  /svrnty:update              — Update the plugin itself to the latest version"
+echo "  /svrnty-team-setup:init [domains...]   — Initialize orchestration in current project"
+echo "  /svrnty-team-setup:doctor              — Repair project and sync to latest plugin version"
+echo "  /svrnty-team-setup:update              — Update the plugin itself to the latest version"
 echo ""

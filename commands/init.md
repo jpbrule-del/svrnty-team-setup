@@ -2,12 +2,11 @@
 name: init
 description: Initialize Overstory agent orchestration in the current project (Overstory + Beads + Mulch + worktrees)
 argument-hint: "[mulch-domains...]"
-disable-model-invocation: true
 allowed-tools:
   - Bash
 ---
 
-# Initialize Orchestration
+# svrnty-team-setup:init — Initialize Orchestration
 
 Run the init script in a single command. Pass any user-provided domain arguments through:
 

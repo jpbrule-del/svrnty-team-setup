@@ -47,21 +47,21 @@ echo -e "${BOLD}--- [1/6] Stack Components ---${NC}"
 if [ -d ".overstory" ]; then
     ok "Overstory initialized"
 else
-    fail "Overstory not initialized — run /svrnty:init"
+    fail "Overstory not initialized — run /svrnty-team-setup:init"
     ERRORS=$((ERRORS + 1))
 fi
 
 if [ -d ".beads" ]; then
     ok "Beads initialized"
 else
-    fail "Beads not initialized — run /svrnty:init"
+    fail "Beads not initialized — run /svrnty-team-setup:init"
     ERRORS=$((ERRORS + 1))
 fi
 
 if [ -d ".mulch" ]; then
     ok "Mulch initialized"
 else
-    fail "Mulch not initialized — run /svrnty:init"
+    fail "Mulch not initialized — run /svrnty-team-setup:init"
     ERRORS=$((ERRORS + 1))
 fi
 echo ""
@@ -389,5 +389,5 @@ echo -e "  Errors:   ${RED}$ERRORS${NC}"
 echo -e "  Plugin:   v${PLUGIN_VERSION}"
 echo ""
 if [ $ERRORS -gt 0 ]; then
-    echo "Run /svrnty:init to reinitialize missing components."
+    echo "Run /svrnty-team-setup:init to reinitialize missing components."
 fi

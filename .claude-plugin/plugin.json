@@ -8,6 +8,5 @@
   },
   "repository": "https://github.com/jpbrule-del/svrnty-team-setup",
   "license": "MIT",
-  "keywords": ["orchestration", "overstory", "beads", "mulch", "multi-agent", "svrnty"],
-  "skills": "./skills/"
+  "keywords": ["orchestration", "overstory", "beads", "mulch", "multi-agent", "svrnty"]
 }
